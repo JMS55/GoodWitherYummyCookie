@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "goodwitheryummycookie",
+  "version": "${version}",
+  "name": "Good Wither Yummy Cookie",
+  "description": "Tameable Withers!",
+  "authors": [
+    "JMS"
+  ],
+  "contributors": [],
+  "contact": {
+    "homepage": "https://github.com/JMS55/GoodWitherYummyCookie",
+    "sources": "https://github.com/JMS55/GoodWitherYummyCookie"
+  },
+  "license": "GPL-3.0",
+  "icon": "assets/goodwitheryummycookie/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.jms.good_wither_yummy_cookie.GoodWitherYummyCookie"
+    ],
+    "client": [],
+    "server": []
+  },
+  "mixins": [
+    "goodwitheryummycookie.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*"
+  }
+}
