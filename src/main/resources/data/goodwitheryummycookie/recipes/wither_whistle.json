@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "SGB",
+        "BB ",
+        "   "
+    ],
+    "key": {
+        "S": {
+            "item": "minecraft:nether_star"
+        },
+        "B": {
+            "item": "minecraft:nether_brick"
+        },
+        "G": {
+            "item": "minecraft:gold_ingot"
+        }
+    },
+    "result": {
+        "item": "goodwitheryummycookie:wither_whistle",
+        "count": 1
+    }
+}
