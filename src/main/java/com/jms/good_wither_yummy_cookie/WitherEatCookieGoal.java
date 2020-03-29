@@ -37,7 +37,7 @@ public class WitherEatCookieGoal extends Goal {
 
     @Override
     public boolean canStart() {
-        WitherExtended wither = (WitherExtended) this.wither;
+        WitherEntityExtension wither = (WitherEntityExtension) this.wither;
 
         if (wither.isTamed()) {
             return !getNearbyCookies(7.0).isEmpty();
@@ -82,25 +82,25 @@ public class WitherEatCookieGoal extends Goal {
 
                 this.state = State.EatingCookie;
                 spawnItemParticles(cookie.getStack(), 16);
-                this.wither.playSound(SoundEvents.ENTITY_GENERIC_EAT, 1.0F, 3.0F);
+                this.wither.playSound(SoundEvents.ENTITY_GENERIC_EAT, 3.0F, 1.0F);
 
                 cookie.kill();
 
-                WitherExtended wither = (WitherExtended) this.wither;
+                WitherEntityExtension wither = (WitherEntityExtension) this.wither;
                 if (wither.isTamed()) {
                     this.wither.heal(this.wither.getMaximumHealth() / 8.0F);
                 } else {
-                    wither.incrementFedCookies();
+                    wither.incrementFedCookiesForTaming();
                     if (wither.isTamed()) {
-                        // TODO: Make wither follow the player
-                        // TODO: Make wither not attack the player
                         // TODO: Remove boss bar
 
-                        double d = this.wither.getRandom().nextGaussian() * 0.02D;
-                        double e = this.wither.getRandom().nextGaussian() * 0.02D;
-                        double f = this.wither.getRandom().nextGaussian() * 0.02D;
-                        this.wither.world.addParticle(ParticleTypes.HEART, this.wither.getParticleX(1.0D),
-                                this.wither.getRandomBodyY() + 0.5D, this.wither.getParticleZ(1.0D), d, e, f);
+                        if (this.wither.world.isClient) {
+                            double d = this.wither.getRandom().nextGaussian() * 0.02D;
+                            double e = this.wither.getRandom().nextGaussian() * 0.02D;
+                            double f = this.wither.getRandom().nextGaussian() * 0.02D;
+                            this.wither.world.addParticle(ParticleTypes.HEART, true, this.wither.getParticleX(1.0D),
+                                    this.wither.getRandomBodyY() + 0.5D, this.wither.getParticleZ(1.0D), d, e, f);
+                        }
                     }
                 }
             }

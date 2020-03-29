@@ -15,8 +15,8 @@
 * Eats nearby dropped items:
     * Cookie - Heals wither
     * Diamond - Drops a nether star after a minute
-    * Honey Bottle - Increases speed of wither
-    * Dragon's Breath - Increases damage of wither
+    * Honey Bottle - Increases move speed of wither
+    * Dragon's Breath - Increases damage of wither and size of skull projectiles
     * Glistering Melon Slice - Applies glowing to nearby mobs (feed again to cancel)
     * Totem of Undying - Makes wither revive upon death
     * Dye - Changes the wither's color

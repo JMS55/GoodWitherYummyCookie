@@ -1,11 +1,10 @@
 package com.jms.good_wither_yummy_cookie.mixin;
 
 import com.jms.good_wither_yummy_cookie.WitherEatCookieGoal;
-import com.jms.good_wither_yummy_cookie.WitherExtended;
+import com.jms.good_wither_yummy_cookie.WitherEntityExtension;
 import java.util.function.Predicate;
 import java.util.Random;
 import java.util.UUID;
-
 import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -20,12 +19,13 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(WitherEntity.class)
-public class WitherMixin extends HostileEntity implements WitherExtended {
+public abstract class WitherMixin extends HostileEntity implements WitherEntityExtension {
 
     private int cookiesNeededToTame;
     private int cookiesFedToTame;
-    private PlayerEntity owner;
+    private UUID owner;
 
+    private static final String TAME_INFO_TAG = "TameInfo";
     private static final String COOKIES_NEEDED_TO_TAME_TAG = "CookiesNeededToTame";
     private static final String COOKIES_FED_TO_TAME_TAG = "CookiesFedToTame";
     private static final String OWNER_TAG = "Owner";
@@ -42,21 +42,28 @@ public class WitherMixin extends HostileEntity implements WitherExtended {
         this.owner = null;
     }
 
-    @Inject(method = "writeCustomDataToTag", at = @At("TAIL"))
+    @Inject(method = "writeCustomDataToTag", at = @At("RETURN"))
     private void injectWriteCustomDataToTag(CompoundTag tag, CallbackInfo info) {
-        tag.putInt(COOKIES_NEEDED_TO_TAME_TAG, this.cookiesNeededToTame);
-        tag.putInt(COOKIES_FED_TO_TAME_TAG, this.cookiesFedToTame);
-        tag.putString(OWNER_TAG, this.owner.getUuidAsString());
+        CompoundTag tameInfoTag = new CompoundTag();
+        tameInfoTag.putInt(COOKIES_NEEDED_TO_TAME_TAG, this.cookiesNeededToTame);
+        tameInfoTag.putInt(COOKIES_FED_TO_TAME_TAG, this.cookiesFedToTame);
+        if (this.owner != null) {
+            tameInfoTag.putUuid(OWNER_TAG, this.owner);
+        }
+        tag.put(TAME_INFO_TAG, tameInfoTag);
     }
 
-    @Inject(method = "readCustomDataFromTag", at = @At("TAIL"))
+    @Inject(method = "readCustomDataFromTag", at = @At("RETURN"))
     private void injectReadCustomDataFromTag(CompoundTag tag, CallbackInfo info) {
-        this.cookiesNeededToTame = tag.getInt(COOKIES_NEEDED_TO_TAME_TAG);
-        this.cookiesFedToTame = tag.getInt(COOKIES_FED_TO_TAME_TAG);
-        this.owner = this.world.getPlayerByUuid(UUID.fromString(tag.getString(OWNER_TAG)));
+        CompoundTag tameInfoTag = tag.getCompound(TAME_INFO_TAG);
+        this.cookiesNeededToTame = tameInfoTag.getInt(COOKIES_NEEDED_TO_TAME_TAG);
+        this.cookiesFedToTame = tameInfoTag.getInt(COOKIES_FED_TO_TAME_TAG);
+        if (tameInfoTag.contains(OWNER_TAG)) {
+            this.owner = tameInfoTag.getUuid(OWNER_TAG);
+        }
     }
 
-    @Inject(method = "initGoals", at = @At("TAIL"))
+    @Inject(method = "initGoals", at = @At("RETURN"))
     private void injectsInitGoals(CallbackInfo info) {
         this.goalSelector.add(1, new WitherEatCookieGoal((WitherEntity) (Object) this));
     }
@@ -73,15 +80,15 @@ public class WitherMixin extends HostileEntity implements WitherExtended {
         return originalPredicate.and(targetPlayerPredicate);
     }
 
-    public void incrementFedCookies() {
+    public void incrementFedCookiesForTaming() {
         this.cookiesFedToTame += 1;
     }
 
-    public PlayerEntity getOwner() {
+    public UUID getOwner() {
         return this.owner;
     }
 
-    public void setOwner(PlayerEntity owner) {
+    public void setOwner(UUID owner) {
         this.owner = owner;
     }
 

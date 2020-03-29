@@ -34,10 +34,10 @@ public class GoodWitherYummyCookie implements ModInitializer {
             final ItemStack held_items = player.getStackInHand(hand);
             if (held_items.getItem() == Items.NAME_TAG && held_items.hasCustomName()) {
                 if (entity.getType() == EntityType.WITHER) {
-                    WitherExtended wither = (WitherExtended) entity;
+                    WitherEntityExtension wither = (WitherEntityExtension) entity;
                     if (!wither.isTamed()) {
                         // TODO: Check to make sure player does not already have a tamed wither
-                        wither.setOwner(player);
+                        wither.setOwner(player.getUuid());
                         held_items.useOnEntity(player, (LivingEntity) entity, hand);
                         return ActionResult.SUCCESS;
                     }
