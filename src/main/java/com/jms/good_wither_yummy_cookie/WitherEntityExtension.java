@@ -11,4 +11,6 @@ public interface WitherEntityExtension {
     void setOwner(UUID owner);
 
     boolean isTamed();
+
+    void hideBossBar();
 }

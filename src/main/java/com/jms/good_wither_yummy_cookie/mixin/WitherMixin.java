@@ -1,25 +1,35 @@
 package com.jms.good_wither_yummy_cookie.mixin;
 
-import com.jms.good_wither_yummy_cookie.WitherEatCookieGoal;
-import com.jms.good_wither_yummy_cookie.WitherEntityExtension;
-import java.util.function.Predicate;
 import java.util.Random;
 import java.util.UUID;
-import net.minecraft.entity.boss.WitherEntity;
+import java.util.function.Predicate;
+
+import com.jms.good_wither_yummy_cookie.WitherEatCookieGoal;
+import com.jms.good_wither_yummy_cookie.WitherEntityExtension;
+
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.boss.ServerBossBar;
+import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.World;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(WitherEntity.class)
 public abstract class WitherMixin extends HostileEntity implements WitherEntityExtension {
+
+    @Shadow
+    @Final
+    private ServerBossBar bossBar;
 
     private int cookiesNeededToTame;
     private int cookiesFedToTame;
@@ -40,6 +50,10 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
         this.cookiesNeededToTame = rng.nextInt(5) + 3;
         this.cookiesFedToTame = 0;
         this.owner = null;
+
+        if (this.isTamed()) {
+            hideBossBar();
+        }
     }
 
     @Inject(method = "writeCustomDataToTag", at = @At("RETURN"))
@@ -94,5 +108,9 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
 
     public boolean isTamed() {
         return this.cookiesFedToTame == this.cookiesNeededToTame;
+    }
+
+    public void hideBossBar() {
+        this.bossBar.setVisible(false);
     }
 }
