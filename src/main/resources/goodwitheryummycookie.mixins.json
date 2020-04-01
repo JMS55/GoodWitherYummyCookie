@@ -3,6 +3,7 @@
   "package": "com.jms.good_wither_yummy_cookie.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "TargetPredicateMixin",
     "WitherMixin"
   ],
   "client": [],

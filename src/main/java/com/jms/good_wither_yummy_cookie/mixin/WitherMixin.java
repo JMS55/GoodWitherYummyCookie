@@ -17,10 +17,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.World;
 
@@ -46,14 +46,10 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void injectConstructor(CallbackInfo info) {
-        Random rng = new Random();
-        this.cookiesNeededToTame = rng.nextInt(5) + 3;
+        Random random = new Random();
+        this.cookiesNeededToTame = random.nextInt(5) + 3;
         this.cookiesFedToTame = 0;
         this.owner = null;
-
-        if (this.isTamed()) {
-            hideBossBar();
-        }
     }
 
     @Inject(method = "writeCustomDataToTag", at = @At("RETURN"))
@@ -69,11 +65,17 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
 
     @Inject(method = "readCustomDataFromTag", at = @At("RETURN"))
     private void injectReadCustomDataFromTag(CompoundTag tag, CallbackInfo info) {
-        CompoundTag tameInfoTag = tag.getCompound(TAME_INFO_TAG);
-        this.cookiesNeededToTame = tameInfoTag.getInt(COOKIES_NEEDED_TO_TAME_TAG);
-        this.cookiesFedToTame = tameInfoTag.getInt(COOKIES_FED_TO_TAME_TAG);
-        if (tameInfoTag.contains(OWNER_TAG)) {
-            this.owner = tameInfoTag.getUuid(OWNER_TAG);
+        if (tag.contains(TAME_INFO_TAG)) {
+            CompoundTag tameInfoTag = tag.getCompound(TAME_INFO_TAG);
+            this.cookiesNeededToTame = tameInfoTag.getInt(COOKIES_NEEDED_TO_TAME_TAG);
+            this.cookiesFedToTame = tameInfoTag.getInt(COOKIES_FED_TO_TAME_TAG);
+            if (tameInfoTag.contains(OWNER_TAG)) {
+                this.owner = tameInfoTag.getUuid(OWNER_TAG);
+            }
+
+            if (this.isTamed()) {
+                hideBossBar();
+            }
         }
     }
 
@@ -82,16 +84,15 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
         this.goalSelector.add(1, new WitherEatCookieGoal((WitherEntity) (Object) this));
     }
 
-    @ModifyArg(method = "initGoals", at = @At(value = "INVOKE", target = "net/minecraft/entity/ai/goal/FollowTargetGoal.<init>"), index = 5)
-    private Predicate<LivingEntity> modifyFollowTargetGoalPredicate(Predicate<LivingEntity> originalPredicate) {
-        Predicate<LivingEntity> targetPlayerPredicate = (livingEntity) -> {
-            if (livingEntity instanceof PlayerEntity) {
-                return !this.isTamed();
-            } else {
-                return true;
-            }
-        };
-        return originalPredicate.and(targetPlayerPredicate);
+    @ModifyArg(method = "initGoals", at = @At(value = "INVOKE", target = "net.minecraft.entity.ai.goal.FollowTargetGoal.<init>"), index = 5)
+    private Predicate<LivingEntity> injectCanAttackPredicate(Predicate<LivingEntity> originalPredicate) {
+        return originalPredicate.and(livingEntity -> livingEntity.getUuid() != this.owner);
+    }
+
+    @ModifyArg(method = "mobTick", at = @At(value = "INVOKE", target = "getTargets"), index = 1)
+    private TargetPredicate injectHeadTargetPredicate(TargetPredicate originalPredicate) {
+        return originalPredicate.setPredicate(((TargetPredicateMixin) originalPredicate).getPredicate()
+                .and(livingEntity -> livingEntity.getUuid() != this.owner));
     }
 
     public void incrementFedCookiesForTaming() {
