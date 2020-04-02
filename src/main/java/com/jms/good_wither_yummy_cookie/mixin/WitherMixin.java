@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.entity.EntityType;
@@ -22,6 +23,7 @@ import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.World;
 
 @Mixin(WitherEntity.class)
@@ -80,7 +82,7 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
     }
 
     @Inject(method = "initGoals", at = @At("RETURN"))
-    private void injectsInitGoals(CallbackInfo info) {
+    private void injectInitGoals(CallbackInfo info) {
         this.goalSelector.add(1, new WitherEatCookieGoal((WitherEntity) (Object) this));
     }
 
@@ -93,6 +95,18 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
     private TargetPredicate injectHeadTargetPredicate(TargetPredicate originalPredicate) {
         return originalPredicate.setPredicate(((TargetPredicateMixin) originalPredicate).getPredicate()
                 .and(livingEntity -> livingEntity.getUuid() != this.owner));
+    }
+
+    @Redirect(method = "mobTick", at = @At(value = "INVOKE", target = "getDifficulty"))
+    private Difficulty injectShootRandomSkulls(World world) {
+        return this.isTamed() ? null : world.getDifficulty();
+    }
+
+    @Override
+    public void setAttacker(LivingEntity attacker) {
+        if (attacker == null || attacker.getUuid() != this.owner) {
+            super.setAttacker(attacker);
+        }
     }
 
     public void incrementFedCookiesForTaming() {

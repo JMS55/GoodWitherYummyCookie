@@ -6,6 +6,7 @@ import java.util.Random;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.ai.goal.Goal;
@@ -65,7 +66,7 @@ public class WitherEatCookieGoal extends Goal {
     @Override
     public void start() {
         GoodWitherYummyCookie.logDebug(
-                "WitherEatCookieGoal::start() called for entity " + this.wither.getCustomName().asFormattedString());
+                "WitherEatCookieGoal.start() called for entity " + this.wither.getCustomName().asFormattedString());
 
         this.state = State.MovingToCookie;
         this.wither.getNavigation().startMovingTo(getNearbyCookies(7.0).remove(0),
@@ -75,7 +76,7 @@ public class WitherEatCookieGoal extends Goal {
     @Override
     public void stop() {
         GoodWitherYummyCookie.logDebug(
-                "WitherEatCookieGoal::stop() called for entity " + this.wither.getCustomName().asFormattedString());
+                "WitherEatCookieGoal.stop() called for entity " + this.wither.getCustomName().asFormattedString());
 
         this.state = State.NotBegun;
         this.ticksSinceStartedEating = 0;
@@ -88,7 +89,7 @@ public class WitherEatCookieGoal extends Goal {
             List<ItemEntity> nearby_cookies = getNearbyCookies(2.0);
             if (nearby_cookies.isEmpty()) {
                 GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString()
-                        + " found no cookie in method WitherEatCookieGoal::tick()");
+                        + " found no cookie in method WitherEatCookieGoal.tick()");
 
                 this.state = State.Finished;
             } else {
@@ -102,18 +103,28 @@ public class WitherEatCookieGoal extends Goal {
                 if (wither.isTamed()) {
                     GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString()
 
-                            + " is tamed and healed with a cookie in method WitherEatCookieGoal::tick()");
+                            + " is tamed and healed with a cookie in method WitherEatCookieGoal.tick()");
                     this.wither.heal(this.wither.getMaximumHealth() / 8.0F);
                 } else {
                     wither.incrementFedCookiesForTaming();
 
                     GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString()
                             + " was fed a cookie while not tamed, and is now "
-                            + (wither.isTamed() ? "tame" : "not tamed") + " in method WitherEatCookieGoal::tick()");
+                            + (wither.isTamed() ? "tame" : "not tamed") + " in method WitherEatCookieGoal.tick()");
 
                     if (wither.isTamed()) {
                         if (this.wither.getTarget() != null && this.wither.getTarget().getUuid() == wither.getOwner()) {
                             this.wither.setTarget(null);
+                        }
+                        if (this.wither.getAttacker() != null
+                                && this.wither.getAttacker().getUuid() == wither.getOwner()) {
+                            this.wither.setAttacker(null);
+                        }
+                        for (int i = 0; i < 3; i++) {
+                            Entity trackedEntity = this.wither.world.getEntityById(this.wither.getTrackedEntityId(i));
+                            if (trackedEntity != null && trackedEntity.getUuid() == wither.getOwner()) {
+                                this.wither.setTrackedEntityId(i, 0);
+                            }
                         }
                         wither.hideBossBar();
                         spawnTamedParticles();
@@ -126,7 +137,7 @@ public class WitherEatCookieGoal extends Goal {
             this.ticksSinceStartedEating += 1;
 
             GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString() + " is eating a cookie with "
-                    + (20 - this.ticksSinceStartedEating) + " ticks left in method WitherEatCookieGoal::tick()");
+                    + (20 - this.ticksSinceStartedEating) + " ticks left in method WitherEatCookieGoal.tick()");
 
             if (this.ticksSinceStartedEating == 20) {
                 this.state = State.Finished;
