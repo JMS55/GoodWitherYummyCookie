@@ -46,7 +46,7 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
         super(type, world);
     }
 
-    @Inject(method = "<init>", at = @At("RETURN"))
+    @Inject(method = "<init>(Lnet/minecraft/entity/EntityType;Lnet/minecraft/world/World;)V", at = @At("RETURN"))
     private void injectConstructor(CallbackInfo info) {
         Random random = new Random();
         this.cookiesNeededToTame = random.nextInt(5) + 3;
@@ -54,7 +54,7 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
         this.owner = null;
     }
 
-    @Inject(method = "writeCustomDataToTag", at = @At("RETURN"))
+    @Inject(method = "writeCustomDataToTag(Lnet/minecraft/nbt/CompoundTag;)V", at = @At("RETURN"))
     private void injectWriteCustomDataToTag(CompoundTag tag, CallbackInfo info) {
         CompoundTag tameInfoTag = new CompoundTag();
         tameInfoTag.putInt(COOKIES_NEEDED_TO_TAME_TAG, this.cookiesNeededToTame);
@@ -65,13 +65,13 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
         tag.put(TAME_INFO_TAG, tameInfoTag);
     }
 
-    @Inject(method = "readCustomDataFromTag", at = @At("RETURN"))
+    @Inject(method = "readCustomDataFromTag(Lnet/minecraft/nbt/CompoundTag;)V", at = @At("RETURN"))
     private void injectReadCustomDataFromTag(CompoundTag tag, CallbackInfo info) {
         if (tag.contains(TAME_INFO_TAG)) {
             CompoundTag tameInfoTag = tag.getCompound(TAME_INFO_TAG);
             this.cookiesNeededToTame = tameInfoTag.getInt(COOKIES_NEEDED_TO_TAME_TAG);
             this.cookiesFedToTame = tameInfoTag.getInt(COOKIES_FED_TO_TAME_TAG);
-            if (tameInfoTag.contains(OWNER_TAG)) {
+            if (tameInfoTag.containsUuid(OWNER_TAG)) {
                 this.owner = tameInfoTag.getUuid(OWNER_TAG);
             }
 
@@ -81,30 +81,30 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
         }
     }
 
-    @Inject(method = "initGoals", at = @At("RETURN"))
+    @Inject(method = "initGoals()V", at = @At("RETURN"))
     private void injectInitGoals(CallbackInfo info) {
         this.goalSelector.add(1, new WitherEatCookieGoal((WitherEntity) (Object) this));
     }
 
-    @ModifyArg(method = "initGoals", at = @At(value = "INVOKE", target = "net.minecraft.entity.ai.goal.FollowTargetGoal.<init>"), index = 5)
+    @ModifyArg(method = "initGoals()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/ai/goal/FollowTargetGoal;<init>(Lnet/minecraft/entity/mob/MobEntity;Ljava/lang/Class;IZZLjava/util/function/Predicate;)V"), index = 5)
     private Predicate<LivingEntity> injectCanAttackPredicate(Predicate<LivingEntity> originalPredicate) {
-        return originalPredicate.and(livingEntity -> livingEntity.getUuid() != this.owner);
+        return originalPredicate.and(livingEntity -> !livingEntity.getUuid().equals(this.owner));
     }
 
-    @ModifyArg(method = "mobTick", at = @At(value = "INVOKE", target = "getTargets"), index = 1)
+    @ModifyArg(method = "mobTick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getTargets(Ljava/lang/Class;Lnet/minecraft/entity/ai/TargetPredicate;Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/util/math/Box;)Ljava/util/List;"), index = 1)
     private TargetPredicate injectHeadTargetPredicate(TargetPredicate originalPredicate) {
         return originalPredicate.setPredicate(((TargetPredicateMixin) originalPredicate).getPredicate()
-                .and(livingEntity -> livingEntity.getUuid() != this.owner));
+                .and(livingEntity -> livingEntity.getUuid().equals(this.owner)));
     }
 
-    @Redirect(method = "mobTick", at = @At(value = "INVOKE", target = "getDifficulty"))
+    @Redirect(method = "mobTick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;getDifficulty()Lnet/minecraft/world/Difficulty;"))
     private Difficulty injectShootRandomSkulls(World world) {
         return this.isTamed() ? null : world.getDifficulty();
     }
 
     @Override
     public void setAttacker(LivingEntity attacker) {
-        if (attacker == null || attacker.getUuid() != this.owner) {
+        if (attacker == null || !attacker.getUuid().equals(this.owner)) {
             super.setAttacker(attacker);
         }
     }

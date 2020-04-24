@@ -4,8 +4,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ItemEntity;
@@ -15,6 +13,7 @@ import net.minecraft.entity.boss.WitherEntity;
 import net.minecraft.item.Items;
 import net.minecraft.particle.ItemStackParticleEffect;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -25,10 +24,10 @@ public class WitherEatCookieGoal extends Goal {
         NotBegun, MovingToCookie, EatingCookie, Finished
     }
 
-    private WitherEntity wither;
+    private final WitherEntity wither;
+    private final Random random;
     private State state;
     private int ticksSinceStartedEating;
-    private Random random;
 
     public WitherEatCookieGoal(WitherEntity wither) {
         super();
@@ -65,9 +64,6 @@ public class WitherEatCookieGoal extends Goal {
 
     @Override
     public void start() {
-        GoodWitherYummyCookie.logDebug(
-                "WitherEatCookieGoal.start() called for entity " + this.wither.getCustomName().asFormattedString());
-
         this.state = State.MovingToCookie;
         this.wither.getNavigation().startMovingTo(getNearbyCookies(7.0).remove(0),
                 this.wither.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED).getValue());
@@ -75,9 +71,6 @@ public class WitherEatCookieGoal extends Goal {
 
     @Override
     public void stop() {
-        GoodWitherYummyCookie.logDebug(
-                "WitherEatCookieGoal.stop() called for entity " + this.wither.getCustomName().asFormattedString());
-
         this.state = State.NotBegun;
         this.ticksSinceStartedEating = 0;
         this.wither.getNavigation().stop();
@@ -88,9 +81,6 @@ public class WitherEatCookieGoal extends Goal {
         if (this.state == State.MovingToCookie && this.wither.getNavigation().isIdle()) {
             List<ItemEntity> nearby_cookies = getNearbyCookies(2.0);
             if (nearby_cookies.isEmpty()) {
-                GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString()
-                        + " found no cookie in method WitherEatCookieGoal.tick()");
-
                 this.state = State.Finished;
             } else {
                 this.state = State.EatingCookie;
@@ -101,28 +91,21 @@ public class WitherEatCookieGoal extends Goal {
 
                 WitherEntityExtension wither = (WitherEntityExtension) this.wither;
                 if (wither.isTamed()) {
-                    GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString()
-
-                            + " is tamed and healed with a cookie in method WitherEatCookieGoal.tick()");
                     this.wither.heal(this.wither.getMaximumHealth() / 8.0F);
                 } else {
                     wither.incrementFedCookiesForTaming();
-
-                    GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString()
-                            + " was fed a cookie while not tamed, and is now "
-                            + (wither.isTamed() ? "tame" : "not tamed") + " in method WitherEatCookieGoal.tick()");
-
                     if (wither.isTamed()) {
-                        if (this.wither.getTarget() != null && this.wither.getTarget().getUuid() == wither.getOwner()) {
+                        if (this.wither.getTarget() != null
+                                && this.wither.getTarget().getUuid().equals(wither.getOwner())) {
                             this.wither.setTarget(null);
                         }
                         if (this.wither.getAttacker() != null
-                                && this.wither.getAttacker().getUuid() == wither.getOwner()) {
+                                && this.wither.getAttacker().getUuid().equals(wither.getOwner())) {
                             this.wither.setAttacker(null);
                         }
                         for (int i = 0; i < 3; i++) {
                             Entity trackedEntity = this.wither.world.getEntityById(this.wither.getTrackedEntityId(i));
-                            if (trackedEntity != null && trackedEntity.getUuid() == wither.getOwner()) {
+                            if (trackedEntity != null && trackedEntity.getUuid().equals(wither.getOwner())) {
                                 this.wither.setTrackedEntityId(i, 0);
                             }
                         }
@@ -135,10 +118,6 @@ public class WitherEatCookieGoal extends Goal {
 
         else if (this.state == State.EatingCookie) {
             this.ticksSinceStartedEating += 1;
-
-            GoodWitherYummyCookie.logDebug(this.wither.getCustomName().asFormattedString() + " is eating a cookie with "
-                    + (20 - this.ticksSinceStartedEating) + " ticks left in method WitherEatCookieGoal.tick()");
-
             if (this.ticksSinceStartedEating == 20) {
                 this.state = State.Finished;
             }
@@ -147,11 +126,11 @@ public class WitherEatCookieGoal extends Goal {
 
     private List<ItemEntity> getNearbyCookies(double radius) {
         return this.wither.world.getEntities(EntityType.ITEM, new Box(this.wither.getBlockPos()).expand(radius),
-                entity -> ((ItemEntity) entity).getStack().getItem() == Items.COOKIE);
+                entity -> entity.getStack().getItem() == Items.COOKIE);
     }
 
-    @Environment(EnvType.CLIENT)
     private void spawnEatingParticles() {
+        ServerWorld world = (ServerWorld) this.wither.world;
         for (int i = 0; i < 16; ++i) {
             Vec3d vec3d = new Vec3d(((double) this.random.nextFloat() - 0.5D) * 0.1D, Math.random() * 0.1D + 0.1D,
                     0.0D);
@@ -162,20 +141,19 @@ public class WitherEatCookieGoal extends Goal {
             vec3d2 = vec3d2.rotateX(-this.wither.pitch * 0.017453292F);
             vec3d2 = vec3d2.rotateY(-this.wither.yaw * 0.017453292F);
             vec3d2 = vec3d2.add(this.wither.getX(), this.wither.getEyeY(), this.wither.getZ());
-            this.wither.world.addParticle(
-                    new ItemStackParticleEffect(ParticleTypes.ITEM, Items.COOKIE.getStackForRender()), vec3d2.x,
-                    vec3d2.y, vec3d2.z, vec3d.x, vec3d.y + 0.05D, vec3d.z);
+            world.spawnParticles(new ItemStackParticleEffect(ParticleTypes.ITEM, Items.COOKIE.getStackForRender()),
+                    vec3d2.x, vec3d2.y, vec3d2.z, 1, vec3d.x, vec3d.y + 0.05D, vec3d.z, 1.0);
         }
     }
 
-    @Environment(EnvType.CLIENT)
     private void spawnTamedParticles() {
+        ServerWorld world = (ServerWorld) this.wither.world;
         for (int i = 0; i < 7; ++i) {
             double d = this.random.nextGaussian() * 0.02D;
             double e = this.random.nextGaussian() * 0.02D;
             double f = this.random.nextGaussian() * 0.02D;
-            this.wither.world.addParticle(ParticleTypes.HEART, this.wither.getParticleX(1.0D),
-                    this.wither.getRandomBodyY() + 0.5D, this.wither.getParticleZ(1.0D), d, e, f);
+            world.spawnParticles(ParticleTypes.HEART, this.wither.getParticleX(1.0D),
+                    this.wither.getRandomBodyY() + 0.5D, this.wither.getParticleZ(1.0D), 1, d, e, f, 1.0);
         }
     }
 }
