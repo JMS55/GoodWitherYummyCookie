@@ -4,8 +4,11 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import com.jms.good_wither_yummy_cookie.WitherEatCookieGoal;
 import com.jms.good_wither_yummy_cookie.WitherEntityExtension;
+import com.jms.good_wither_yummy_cookie.goal.WitherAttackWithOwnerGoal;
+import com.jms.good_wither_yummy_cookie.goal.WitherEatCookieGoal;
+import com.jms.good_wither_yummy_cookie.goal.WitherFollowOwnerGoal;
+import com.jms.good_wither_yummy_cookie.goal.WitherTrackOwnerAttackerGoal;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -83,7 +86,11 @@ public abstract class WitherMixin extends HostileEntity implements WitherEntityE
 
     @Inject(method = "initGoals()V", at = @At("RETURN"))
     private void injectInitGoals(CallbackInfo info) {
-        this.goalSelector.add(1, new WitherEatCookieGoal((WitherEntity) (Object) this));
+        WitherEntity thisEntity = (WitherEntity) (Object) this;
+        this.goalSelector.add(0, new WitherEatCookieGoal(thisEntity));
+        this.targetSelector.add(1, new WitherTrackOwnerAttackerGoal(thisEntity));
+        this.targetSelector.add(2, new WitherAttackWithOwnerGoal(thisEntity));
+        this.goalSelector.add(3, new WitherFollowOwnerGoal(thisEntity, 1.0D, 3.0F, 10.0F, false));
     }
 
     @ModifyArg(method = "initGoals()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/ai/goal/FollowTargetGoal;<init>(Lnet/minecraft/entity/mob/MobEntity;Ljava/lang/Class;IZZLjava/util/function/Predicate;)V"), index = 5)

@@ -1,8 +1,10 @@
-package com.jms.good_wither_yummy_cookie;
+package com.jms.good_wither_yummy_cookie.goal;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
+
+import com.jms.good_wither_yummy_cookie.WitherEntityExtension;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -37,7 +39,7 @@ public class WitherEatCookieGoal extends Goal {
         this.ticksSinceStartedEating = 0;
         this.random = wither.getRandom();
 
-        this.setControls(EnumSet.of(Goal.Control.MOVE, Goal.Control.JUMP, Goal.Control.LOOK));
+        this.setControls(EnumSet.of(Goal.Control.MOVE, Goal.Control.LOOK));
     }
 
     @Override
